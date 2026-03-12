@@ -357,7 +357,73 @@ body {
   font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
 
-/* ─── EMPTY STATE ──────────────────────────────────────────────────────── */
+/* ─── SEMÁFORO IA ──────────────────────────────────────────────────────── */
+.semaforo-card {
+  border-radius: var(--radius); padding: 16px 18px;
+  margin-bottom: 14px; border: 1.5px solid transparent;
+  transition: all .4s ease;
+  position: relative; overflow: hidden;
+}
+.semaforo-card.verde  { background: #EDFAF4; border-color: #2D9B6F; }
+.semaforo-card.amarelo{ background: #FFF8EC; border-color: #E8A020; }
+.semaforo-card.vermelho{ background: #FFF0F0; border-color: #E05252; }
+.semaforo-card.loading{ background: var(--mint-pale); border-color: var(--border); }
+
+.semaforo-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.semaforo-selo {
+  font-size: 11px; font-weight: 700; padding: 3px 10px;
+  border-radius: 20px; letter-spacing: .4px; text-transform: uppercase;
+}
+.verde  .semaforo-selo { background: #2D9B6F; color: #fff; }
+.amarelo .semaforo-selo { background: #E8A020; color: #fff; }
+.vermelho .semaforo-selo { background: #E05252; color: #fff; }
+.loading .semaforo-selo { background: var(--border); color: var(--text-3); }
+
+.semaforo-titulo {
+  font-size: 12px; font-weight: 700; color: var(--text-2);
+  text-transform: uppercase; letter-spacing: .5px;
+  flex: 1;
+}
+.semaforo-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+.verde   .semaforo-dot { background: #2D9B6F; }
+.amarelo .semaforo-dot { background: #E8A020; }
+.vermelho .semaforo-dot{ background: #E05252; }
+.loading .semaforo-dot { background: var(--text-3); animation: none; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: .5; transform: scale(1.3); }
+}
+
+.semaforo-msg {
+  font-size: 14px; line-height: 1.55; color: var(--text); font-weight: 400;
+  margin-bottom: 8px;
+}
+.semaforo-conselho {
+  font-size: 12px; font-style: italic; color: var(--text-2);
+  border-top: 1px solid rgba(0,0,0,.06); padding-top: 8px; margin-top: 2px;
+  line-height: 1.5;
+}
+.semaforo-loading-anim {
+  display: flex; gap: 5px; align-items: center; padding: 4px 0;
+}
+.semaforo-loading-anim span {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--text-3);
+  animation: bounce .9s infinite;
+}
+.semaforo-loading-anim span:nth-child(2) { animation-delay: .2s; }
+.semaforo-loading-anim span:nth-child(3) { animation-delay: .4s; }
+@keyframes bounce {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
+}
+
+
 .empty {
   text-align: center; padding: 32px 16px; color: var(--text-3);
 }
@@ -374,7 +440,7 @@ body {
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ─── PROGRESSBAR ──────────────────────────────────────────────────────── */
-.progress-wrap { margin-top: 8px; }
+.progress-wrap { margin-bottom: 15px; }
 .progress-label {
   display: flex; justify-content: space-between;
   font-size: 11px; color: var(--text-3); margin-bottom: 4px;
@@ -489,6 +555,14 @@ body {
   </div>
   <div class="summary-grid" id="summaryGrid"></div>
   <div class="progress-wrap" id="progressWrap"></div>
+  <div id="semaforoCard" class="semaforo-card loading">
+    <div class="semaforo-header">
+      <span class="semaforo-titulo">💡 Conselho da IA</span>
+      <span class="semaforo-selo">Analisando</span>
+      <span class="semaforo-dot"></span>
+    </div>
+    <div class="semaforo-loading-anim"><span></span><span></span><span></span></div>
+  </div>
   <button class="btn-add" style="margin:15px 0" onclick="openAddModal()">+ Adicionar Conta</button>
   <div id="contasLista"></div>
 </div>
@@ -756,6 +830,135 @@ const catIcon = {
   'Casa':'🏠','Lazer':'🎮','Pets':'🐾','Assinatura':'📱','Outros':'📦'
 };
 
+// ─── SEMÁFORO IA ──────────────────────────────────────────────────────────────
+let _semaforoTimer = null;
+
+function triggerSemaforo() {
+  // Debounce: espera 800ms após última mudança para não chamar a API várias vezes
+  clearTimeout(_semaforoTimer);
+  _semaforoTimer = setTimeout(renderSemaforo, 800);
+}
+
+async function renderSemaforo() {
+  const card = document.getElementById('semaforoCard');
+  if (!card) return;
+
+  // Dados do mês atual
+  const itemsMes   = getItemsForMonth(_items, currentMonth);
+  const totalMes   = itemsMes.reduce((s, it) => s + it.valor, 0);
+  const totalPago  = itemsMes.filter(it => isPago(it.id, currentMonth)).reduce((s, it) => s + it.valor, 0);
+  const totalAPagar = totalMes - totalPago;
+  const pct        = _renda > 0 ? Math.round(totalMes / _renda * 100) : 0;
+  const saldo      = _renda - totalMes;
+
+  // Parcelas futuras (próximos 3 meses)
+  let parcelasFuturas = 0;
+  for (let m = currentMonth + 1; m <= Math.min(currentMonth + 3, 11); m++) {
+    parcelasFuturas += getItemsForMonth(_items, m).reduce((s, it) => s + it.valor, 0);
+  }
+
+  // Categorias não essenciais
+  const naoEssenciais = ['Roupas','Beleza','Lazer','Presente'];
+  const gastoNaoEssencial = itemsMes
+    .filter(it => naoEssenciais.includes(it.cat))
+    .reduce((s, it) => s + it.valor, 0);
+
+  // Se não tem renda cadastrada, mostra mensagem neutra
+  if (_renda === 0) {
+    card.className = 'semaforo-card amarelo';
+    card.innerHTML = `
+      <div class="semaforo-header">
+        <span class="semaforo-titulo">💡 Conselho da IA</span>
+        <span class="semaforo-selo">🟡 Atenção</span>
+        <span class="semaforo-dot"></span>
+      </div>
+      <div class="semaforo-msg">Cadastre sua renda mensal para eu conseguir analisar sua situação financeira com precisão.</div>
+      <div class="semaforo-conselho">Sem saber sua renda, não consigo te dizer se seus gastos estão saudáveis ou não.</div>`;
+    return;
+  }
+
+  // Mostra animação de carregando
+  card.className = 'semaforo-card loading';
+  card.innerHTML = `
+    <div class="semaforo-header">
+      <span class="semaforo-titulo">💡 Conselho da IA</span>
+      <span class="semaforo-selo">Analisando</span>
+      <span class="semaforo-dot"></span>
+    </div>
+    <div class="semaforo-loading-anim"><span></span><span></span><span></span></div>`;
+
+  // Monta prompt com os dados financeiros
+  const prompt = `Você é uma assistente financeira pessoal empática e direta. Analise a situação financeira abaixo e responda com exatamente 3 campos em JSON:
+
+Dados financeiros do mês atual (${MONTHS[currentMonth]}):
+- Renda mensal: R$ ${_renda.toFixed(2)}
+- Total de contas do mês: R$ ${totalMes.toFixed(2)}
+- Já pago: R$ ${totalPago.toFixed(2)}
+- Ainda a pagar: R$ ${totalAPagar.toFixed(2)}
+- Saldo restante: R$ ${saldo.toFixed(2)}
+- Percentual da renda comprometida: ${pct}%
+- Número de contas no mês: ${itemsMes.length}
+- Gastos em categorias não essenciais (roupas, beleza, lazer, presentes): R$ ${gastoNaoEssencial.toFixed(2)}
+- Total comprometido nos próximos 3 meses (parcelas futuras): R$ ${parcelasFuturas.toFixed(2)}
+
+Regras para o nível:
+- "verde": até 50% da renda comprometida e saldo positivo confortável
+- "amarelo": entre 51% e 75% da renda comprometida OU parcelas futuras altas
+- "vermelho": acima de 75% da renda comprometida OU saldo negativo
+
+Responda SOMENTE com JSON válido, sem texto extra, neste formato:
+{
+  "nivel": "verde" | "amarelo" | "vermelho",
+  "mensagem": "Uma frase clara sobre o momento financeiro atual (máx 2 frases, tom humano e empático)",
+  "conselho": "Um conselho comportamental curto e direto, focado em frear impulso de consumo se necessário (máx 1 frase)"
+}`;
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer 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'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        max_tokens: 200,
+        temperature: 0.7,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data  = await res.json();
+    const texto = data.choices?.[0]?.message?.content?.trim() || '';
+    const json  = JSON.parse(texto.replace(/```json|```/g, '').trim());
+
+    const nivel  = json.nivel || 'amarelo';
+    const selos  = { verde: '🟢 Seguro', amarelo: '🟡 Atenção', vermelho: '🔴 Cuidado' };
+
+    card.className = `semaforo-card ${nivel}`;
+    card.innerHTML = `
+      <div class="semaforo-header">
+        <span class="semaforo-titulo">💡 Conselho da IA</span>
+        <span class="semaforo-selo">${selos[nivel]}</span>
+        <span class="semaforo-dot"></span>
+      </div>
+      <div class="semaforo-msg">${json.mensagem}</div>
+      <div class="semaforo-conselho">${json.conselho}</div>`;
+
+  } catch(e) {
+    card.className = 'semaforo-card amarelo';
+    card.innerHTML = `
+      <div class="semaforo-header">
+        <span class="semaforo-titulo">💡 Conselho da IA</span>
+        <span class="semaforo-selo">🟡 Atenção</span>
+        <span class="semaforo-dot"></span>
+      </div>
+      <div class="semaforo-msg">Não consegui analisar sua situação agora.</div>
+      <div class="semaforo-conselho">Verifique sua conexão e tente novamente.</div>`;
+  }
+}
+
+
 // ─── TOAST ────────────────────────────────────────────────────────────────────
 function toast(msg) {
   const t = document.getElementById('toast');
@@ -775,10 +978,10 @@ window.setPage = function(name, btn) {
   if (name === 'cadastro') renderCadastro();
 };
 window.prevMonth = function() {
-  if (currentMonth > 0) { currentMonth--; updateMonthLabel(); renderInicio(); }
+  if (currentMonth > 0) { currentMonth--; updateMonthLabel(); renderInicio(); triggerSemaforo(); }
 };
 window.nextMonth = function() {
-  if (currentMonth < 11) { currentMonth++; updateMonthLabel(); renderInicio(); }
+  if (currentMonth < 11) { currentMonth++; updateMonthLabel(); renderInicio(); triggerSemaforo(); }
 };
 function updateMonthLabel() {
   document.getElementById('monthLabel').textContent = MONTHS[currentMonth];
@@ -840,6 +1043,7 @@ function renderInicio() {
   const lista = document.getElementById('contasLista');
   if (items.length === 0) {
     lista.innerHTML = `<div class="empty"><div class="icon">🎉</div><p>Nenhuma conta nesse mês!</p></div>`;
+    triggerSemaforo();
     return;
   }
   const grupos = {};
@@ -879,6 +1083,7 @@ function renderInicio() {
     });
   });
   lista.innerHTML = html;
+  triggerSemaforo();
 }
 
 // ─── RENDER GRÁFICO ──────────────────────────────────────────────────────────
