@@ -1,4 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <!-- Fundo arredondado verde -->
   <rect width="192" height="192" rx="40" fill="#2D7D6F"/>
-  <text x="96" y="130" font-size="100" text-anchor="middle" font-family="serif">💚</text>
+
+  <!-- Brilho sutil no topo -->
+  <rect width="192" height="96" rx="40" fill="white" opacity="0.06"/>
+
+  <!-- Moeda grande - círculo externo -->
+  <circle cx="96" cy="96" r="62" fill="#E8A020" opacity="0.2"/>
+  <circle cx="96" cy="96" r="55" fill="#E8A020"/>
+  <circle cx="96" cy="96" r="47" fill="#F5B733" opacity="0.5"/>
+  <circle cx="96" cy="96" r="47" fill="none" stroke="#C87D10" stroke-width="2"/>
+
+  <!-- Símbolo R$ centralizado -->
+  <text x="96" y="115" font-size="52" font-weight="bold" text-anchor="middle"
+        font-family="'DM Sans', Arial, sans-serif" fill="#7A4A00">R$</text>
 </svg>
