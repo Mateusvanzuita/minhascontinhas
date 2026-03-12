@@ -783,13 +783,13 @@ import { getFirestore, doc, getDoc, setDoc,
 
 // ─── FIREBASE INIT ───────────────────────────────────────────────────────────
 const firebaseConfig = {
-  apiKey:            "AIzaSyBLbp-3JhbaxOMmmX2d8Yj8dXh9FrYcRpc",
-  authDomain:        "continhas-5b891.firebaseapp.com",
-  projectId:         "continhas-5b891",
-  storageBucket:     "continhas-5b891.firebasestorage.app",
-  messagingSenderId: "248161059215",
-  appId:             "1:248161059215:web:2a808805c13eb9b3318bfa",
-  measurementId:     "G-H5R7168D4T"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID
 };
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
@@ -918,12 +918,12 @@ Responda SOMENTE com JSON válido, sem texto extra, neste formato:
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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'
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        max_tokens: 200,
-        temperature: 0.7,
+        model: process.env.OPENAI_MODEL,
+        max_tokens: Number(process.env.OPENAI_MAX_TOKENS),
+        temperature: Number(process.env.OPENAI_TEMPERATURE),
         messages: [{ role: 'user', content: prompt }]
       })
     });
