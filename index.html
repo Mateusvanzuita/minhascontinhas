@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Minhas Contas"/>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icon-192.svg"/>
-<title>Minhas Contas</title>
+<title>💚 Minhas Contas</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 :root {
@@ -1019,9 +1019,13 @@ window.openEditModal = function(id) {
   const tipo = it.tipo || 'parcelada';
   selTipo(tipo);
   if (tipo === 'parcelada') {
-    document.getElementById('f_totalParc').value = it.totalParc || 1;
-    document.getElementById('f_jaPagas').value   = it.jaPagas   || 0;
-    document.getElementById('f_mesIni').value    = it.mesIni    || 0;
+    // f_totalParc deve mostrar só as parcelas RESTANTES (sem as já pagas)
+    const restantes = (it.totalParc || 1) - (it.jaPagas || 0);
+    document.getElementById('f_totalParc').value = restantes;
+    document.getElementById('f_jaPagas').value   = it.jaPagas || 0;
+    // f_mesIni deve mostrar o mês da PRÓXIMA parcela
+    const proxMes = (it.mesIni || 0) + (it.jaPagas || 0);
+    document.getElementById('f_mesIni').value    = proxMes;
   } else if (tipo === 'recorrente') {
     document.getElementById('f_mesIniRec').value = it.mesIni || 0;
     document.getElementById('f_mesFimRec').value = Math.min((it.mesIni||0)+(it.totalParc||1)-1, 11);
